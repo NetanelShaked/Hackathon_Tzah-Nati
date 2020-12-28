@@ -2,6 +2,7 @@ import socket
 import struct
 import threading
 import time
+import concurrent.futures
 
 
 def send_broadcast_suggestion(socket_udp):
@@ -27,12 +28,13 @@ def start_new_game(clientsocket):
         except:
             pass
     print(char_counter)
-    answer=bytes("you hit"+str(char_counter)+" chars","utf-8")
+    answer = bytes("************** you hit " + str(char_counter) + " chars **************", "utf-8")
     clientsocket.sendall(answer)
-    clientsocket.close()
+    return char_counter
 
 
 if __name__ == '__main__':
+    group_name1, group_name2 = '', ''
     SERVER_IP = socket.gethostname()
     PORT_NUM = 5112
     print("Server started,listening on IP address 172.1.0.3")
@@ -44,9 +46,44 @@ if __name__ == '__main__':
     # while True:
     #     pass
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp_socket.bind((SERVER_IP, PORT_NUM))
+    tcp_socket.bind(('', PORT_NUM))
     tcp_socket.listen(2)
-    while True:
-        (clientsocket, address) = tcp_socket.accept()
-        game = threading.Thread(target=start_new_game, args=[clientsocket])
-        game.start()
+    with concurrent.futures.ThreadPoolExecutor(2) as executor:
+        while True:
+            (clientsocket_1, address_1) = tcp_socket.accept()
+            group_name1 = clientsocket_1.recv(1024).decode("utf-8")
+
+            print("Player 1 connected, waiting to Player 2 \n group name : " + group_name1)
+
+            (clientsocket_2, address_2) = tcp_socket.accept()
+            group_name2 = clientsocket_2.recv(1024).decode("utf-8")
+            print("Player 2: %s is connected, starting game!" % group_name2)
+
+            time.sleep(10)
+
+            start_message = bytes(
+                "Welcome to Keyboard Spamming"
+                " Battle Royale.\nGroup 1:\n==\n" + group_name1 + "\n\nGroup "
+                                                                  "2:\n==\n" + group_name2 + "\n"
+                                                                                             "\nStart pressing keys on "
+                                                                                             "your keyboard as fast as "
+                                                                                             "you can!!",
+                "utf-8")
+            clientsocket_1.sendall(start_message)
+            clientsocket_2.sendall(start_message)
+
+            game1 = executor.submit(start_new_game, clientsocket_1)
+            game2 = executor.submit(start_new_game, clientsocket_2)
+
+            game1_result = game1.result()
+            game2_result = game2.result()
+
+            if game1_result == game2_result:
+                print("TEKO")
+            elif game1_result > game2_result:
+                print("Player 1 is winner")
+            else:
+                print("Player 2 is winner")
+
+            clientsocket_2.close()
+            clientsocket_1.close()
