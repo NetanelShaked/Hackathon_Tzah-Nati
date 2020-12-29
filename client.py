@@ -1,7 +1,6 @@
 import socket
 import struct
-
-# import getch
+import getch
 
 
 if __name__ == '__main__':
@@ -35,15 +34,12 @@ if __name__ == '__main__':
     print(tcp_socket.recv(1024).decode("utf-8"))
     server_message = None
     while server_message is None:
-        message = input()
+        message = getch.getche()
         try:
             tcp_socket.sendall(bytes(message, "utf-8"))
             tcp_socket.settimeout(0.00001)
             server_message = tcp_socket.recv(1024)
-        except TimeoutError:
+        except:
             pass
-        except ConnectionAbortedError:
-            server_message = bytes("The game is done, tcp message is droped by your computer", "utf-8")
-
     print(server_message.decode("utf-8"))
     tcp_socket.close()

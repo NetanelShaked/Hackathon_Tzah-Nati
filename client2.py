@@ -1,6 +1,6 @@
 import socket
 import struct
-# import getch
+import getch
 
 
 if __name__ == '__main__':
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     print(tcp_socket.recv(1024).decode("utf-8"))
     server_message = None
     while server_message is None:
-        message = input()
+        message = getch.getche()
         try:
             tcp_socket.sendall(bytes(message, "utf-8"))
             tcp_socket.settimeout(0.00001)
