@@ -14,7 +14,7 @@ def send_broadcast_suggestion(socket_udp):
     :return:
     """
     message = struct.pack('Ibh', 0xfeedbeef, 0x2, 5112)
-    socket_udp.sendto(message, ("172.1.0.255", 13117))
+    socket_udp.sendto(message, ("<broadcast>", 13117))
 
 
 def thread_send_Announcements(socket_udp):
@@ -31,7 +31,7 @@ def get_all_tcp_connection(tcpSocket):
             (clientside, address) = tcpSocket.accept()
             group_name = clientside.recv(1024).decode("utf-8")
             tcp_connectios.append((clientside, group_name))
-            print("THZAAAAAAAAAAAAAAAAAAAAAAAAAAAGH")
+            print(group_name)
         except:
             pass
     return tcp_connectios
@@ -48,8 +48,6 @@ def start_new_game(clientside):
         except:
             pass
     print(char_counter)
-    # answer = bytes("************** you hit " + str(char_counter) + " chars **************", "utf-8")
-    # clientside.sendall(answer)
     return char_counter
 
 
@@ -59,22 +57,22 @@ if __name__ == '__main__':
     PORT_NUM = 5112
     print("Server started,listening on IP address 172.1.0.3")
     upd_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # upd_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    upd_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
     sending_suggestions_thread.start()
     # while True:
     #     pass
-    tcp_open=False
+    tcp_open = False
+    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     while not tcp_open:
         try:
-            tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcp_socket.bind(('', PORT_NUM))
             tcp_socket.listen()
-            tcp_open=True
+            tcp_open = True
         except OSError:
-            print ("SOME DID SOMETHING NASTY AND STOLL MY PORT!!")
-        
+            print("SOME DID SOMETHING NASTY AND STOLL MY PORT!!")
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         while True:
             # tcp_socket.settimeout(30)
