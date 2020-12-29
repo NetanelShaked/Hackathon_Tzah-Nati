@@ -17,8 +17,8 @@ def send_broadcast_suggestion(socket_udp):
     socket_udp.sendto(message, ("<broadcast>", 13117))
 
 
-def thread_send_enouncments(socket_udp):
-    threading.Timer(1.0, thread_send_enouncments, args=[socket_udp]).start()
+def thread_send_Announcements(socket_udp):
+    threading.Timer(1.0, thread_send_Announcements, args=[socket_udp]).start()
     send_broadcast_suggestion(upd_socket)
 
 
@@ -47,8 +47,8 @@ if __name__ == '__main__':
     upd_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     upd_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-    sending_segestions_thread = multiprocessing.Process(target=thread_send_enouncments, args=(upd_socket,))
-    sending_segestions_thread.start()
+    sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
+    sending_suggestions_thread.start()
     # while True:
     #     pass
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,6 +56,7 @@ if __name__ == '__main__':
     tcp_socket.listen(4)
     with concurrent.futures.ThreadPoolExecutor(4) as executor:
         while True:
+            # tcp_socket.settimeout(30)
             (clientside, address_1) = tcp_socket.accept()
             group_name = clientside.recv(1024).decode("utf-8")
             sockets_list.append((clientside, group_name))
@@ -72,7 +73,7 @@ if __name__ == '__main__':
             print("Player 3 connected, waiting to Player 4 \ngroup name : " + group_name)
 
             (clientside, address_2) = tcp_socket.accept()
-            sending_segestions_thread.terminate()
+            sending_suggestions_thread.terminate()
             group_name = clientside.recv(1024).decode("utf-8")
             sockets_list.append((clientside, group_name))
             print("Last group is in, group name is " + group_name)
@@ -134,5 +135,5 @@ if __name__ == '__main__':
             for client, group_name in sockets_list:
                 client.sendall(result_message)
                 client.close()
-            sending_segestions_thread = multiprocessing.Process(target=thread_send_enouncments, args=(upd_socket,))
-            sending_segestions_thread.start()
+            sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
+            sending_suggestions_thread.start()
