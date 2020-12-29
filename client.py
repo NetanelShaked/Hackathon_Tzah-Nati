@@ -1,14 +1,15 @@
 import socket
 import struct
-import getch 
+
+# import getch
 
 
 if __name__ == '__main__':
     print("Client started, listening for offer requests...")
-    UPD_PORT = 13117
+    UDP_PORT = 13117
     cache_anointment = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     cache_anointment.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    cache_anointment.bind(('', UPD_PORT))
+    cache_anointment.bind(('', UDP_PORT))
     stop = False
     data = None
     while not stop:
@@ -34,12 +35,15 @@ if __name__ == '__main__':
     print(tcp_socket.recv(1024).decode("utf-8"))
     server_message = None
     while server_message is None:
-        message = getch.getche()
-        tcp_socket.sendall(bytes(message, "utf-8"))
+        message = input()
         try:
+            tcp_socket.sendall(bytes(message, "utf-8"))
             tcp_socket.settimeout(0.00001)
             server_message = tcp_socket.recv(1024)
-        except:
+        except TimeoutError:
             pass
+        except ConnectionAbortedError:
+            server_message = bytes("The game is done, tcp message is droped by your computer", "utf-8")
+
     print(server_message.decode("utf-8"))
     tcp_socket.close()
