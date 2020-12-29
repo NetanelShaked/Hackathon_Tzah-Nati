@@ -3,6 +3,7 @@ import struct
 import threading
 import time
 import concurrent.futures
+import random
 
 
 def send_broadcast_suggestion(socket_udp):
@@ -34,7 +35,7 @@ def start_new_game(clientsocket):
 
 
 if __name__ == '__main__':
-    group_name1, group_name2 = '', ''
+    sockets_list = []
     SERVER_IP = socket.gethostname()
     PORT_NUM = 5112
     print("Server started,listening on IP address 172.1.0.3")
@@ -47,43 +48,76 @@ if __name__ == '__main__':
     #     pass
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.bind(('', PORT_NUM))
-    tcp_socket.listen(2)
-    with concurrent.futures.ThreadPoolExecutor(2) as executor:
+    tcp_socket.listen(4)
+    with concurrent.futures.ThreadPoolExecutor(4) as executor:
         while True:
-            (clientsocket_1, address_1) = tcp_socket.accept()
-            group_name1 = clientsocket_1.recv(1024).decode("utf-8")
+            (clientside, address_1) = tcp_socket.accept()
+            group_name = clientside.recv(1024).decode("utf-8")
+            sockets_list.append((clientside, group_name))
+            print("Player 1 connected, waiting to Player 2 \ngroup name : " + group_name)
 
-            print("Player 1 connected, waiting to Player 2 \n group name : " + group_name1)
+            (clientside, address_2) = tcp_socket.accept()
+            group_name = clientside.recv(1024).decode("utf-8")
+            sockets_list.append((clientside, group_name))
+            print("Player 2 connected, waiting to Player 3 \ngroup name : " + group_name)
 
-            (clientsocket_2, address_2) = tcp_socket.accept()
-            group_name2 = clientsocket_2.recv(1024).decode("utf-8")
-            print("Player 2: %s is connected, starting game!" % group_name2)
+            (clientside, address_1) = tcp_socket.accept()
+            group_name = clientside.recv(1024).decode("utf-8")
+            sockets_list.append((clientside, group_name))
+            print("Player 3 connected, waiting to Player 4 \ngroup name : " + group_name)
+
+            (clientside, address_2) = tcp_socket.accept()
+            group_name = clientside.recv(1024).decode("utf-8")
+            sockets_list.append((clientside, group_name))
+            print("Last group is in, group name is " + group_name)
 
             time.sleep(10)
 
+            random.shuffle(sockets_list)
+
+            buddies1 = sockets_list[0][1] + " \n " + sockets_list[1][1]
+            buddies2 = sockets_list[2][1] + " \n " + sockets_list[3][1]
+
             start_message = bytes(
                 "Welcome to Keyboard Spamming"
-                " Battle Royale.\nGroup 1:\n==\n" + group_name1 + "\n\nGroup "
-                                                                  "2:\n==\n" + group_name2 + "\n"
-                                                                                             "\nStart pressing keys on "
-                                                                                             "your keyboard as fast as "
-                                                                                             "you can!!",
+                " Battle Royale.\nGroup 1:\n==\n" + buddies1 + "\n\nGroup "
+                                                               "2:\n==\n" + buddies2 + "\n"
+                                                                                       "\nStart pressing keys on "
+                                                                                       "your keyboard as fast as "
+                                                                                       "you can!!",
                 "utf-8")
-            clientsocket_1.sendall(start_message)
-            clientsocket_2.sendall(start_message)
 
-            game1 = executor.submit(start_new_game, clientsocket_1)
-            game2 = executor.submit(start_new_game, clientsocket_2)
+            for client, group_name in sockets_list:
+                client.sendall(start_message)
+            game1 = executor.submit(start_new_game, sockets_list[0])
+            game2 = executor.submit(start_new_game, sockets_list[1])
+            game3 = executor.submit(start_new_game, sockets_list[2])
+            game4 = executor.submit(start_new_game, sockets_list[3])
 
             game1_result = game1.result()
             game2_result = game2.result()
+            game3_result = game3.result()
+            game4_result = game4.result()
 
-            if game1_result == game2_result:
+            buddies1_result = game1_result + game2_result
+            buddies2_result = game3_result + game4_result
+
+            if buddies1_result == buddies2_result:
                 print("TEKO")
-            elif game1_result > game2_result:
-                print("Player 1 is winner")
-            else:
-                print("Player 2 is winner")
+                result_message = bytes("All Buddies get the same score, it a TEKO!", "utf-8")
 
-            clientsocket_2.close()
-            clientsocket_1.close()
+            elif buddies1_result > buddies2_result:
+                print("Buddies 1 is winner")
+                result_message = bytes(
+                    sockets_list[0][1] + " " + sockets_list[1][1] + "win\n" + sockets_list[2][1] + " " +
+                    sockets_list[3][1] + " loss", "utf-8")
+
+            else:
+                print("Buddies 2 is winner")
+                result_message = bytes(
+                    sockets_list[2][1] + " " +
+                    sockets_list[3][1] + "win\n" + sockets_list[0][1] + " " + sockets_list[1][1] + " loss", "utf-8")
+
+            for client, group_name in sockets_list:
+                client.sendall(result_message)
+                client.close()
