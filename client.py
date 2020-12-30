@@ -30,10 +30,13 @@ if __name__ == '__main__':
             print("Port num " + str(int(portnum)))
             try:
                 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                tcp_socket.settimeout(3)
                 tcp_socket.connect((addr[0], portnum))
                 tcp_socket.settimeout(10)
                 tcp_socket.sendall(bytes("KeysCannon", "utf-8"))
-                print(tcp_socket.recv(1024).decode("utf-8"))
+                tcp_socket.settimeout(10)
+                server_message=tcp_socket.recv(1024)
+                print(server_message.decode("utf-8"))
             except:
                 print("Connection failed, trying again.")
                 continue
