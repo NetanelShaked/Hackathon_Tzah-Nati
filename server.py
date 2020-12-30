@@ -23,26 +23,31 @@ def thread_send_Announcements(socket_udp):
 
 
 def get_all_tcp_connection(tcpSocket):
-    tcp_connectios = []
+    """
+
+    :param tcpSocket: pointer to our tcp server socket
+    :return: list of tuples (Socket, group_name) for each client connected to our tcp server
+    """
+    tcp_connections = []
     cur_time = time.time()
     while time.time() - cur_time < 10:
         try:
             tcpSocket.settimeout(0.2)
             (clientside, address) = tcpSocket.accept()
             group_name = clientside.recv(1024).decode("utf-8")
-            tcp_connectios.append((clientside, group_name))
-            print(group_name)
+            tcp_connections.append((clientside, group_name))
+            print(group_name + " is connected")
         except:
             pass
-    return tcp_connectios
+    return tcp_connections
 
 
 def start_new_game(clientside):
     start_time = time.time()
     char_counter = 0
     while time.time() - start_time < 10:
-        clientside.settimeout(10)
         try:
+            clientside.settimeout(0.1)
             message = clientside.recv(1024)
             char_counter += len(message)
         except:
@@ -55,16 +60,19 @@ if __name__ == '__main__':
     sockets_list = []
     SERVER_IP = socket.gethostname()
     PORT_NUM = 5112
+
     print("Server started,listening on IP address 172.1.0.3")
+
     upd_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     upd_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
     sending_suggestions_thread.start()
-    # while True:
-    #     pass
+
     tcp_open = False
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Starting our tcp server
     while not tcp_open:
         try:
             tcp_socket.bind(('', PORT_NUM))
@@ -92,17 +100,16 @@ if __name__ == '__main__':
             # print("Player 3 connected, waiting to Player 4 \ngroup name : " + group_name)
             #
             # (clientside, address_2) = tcp_socket.accept()
+
+            print("Waiting for participation")
             sockets_list = get_all_tcp_connection(tcp_socket)
-            # time.sleep(10)
             if len(sockets_list) < 2:
                 continue
             sending_suggestions_thread.terminate()
-            #
+
             # group_name = clientside.recv(1024).decode("utf-8")
             # sockets_list.append((clientside, group_name))
             # print("Last group is in, group name is " + group_name)
-
-            # time.sleep(10)
 
             random.shuffle(sockets_list)
 
@@ -113,12 +120,11 @@ if __name__ == '__main__':
             buddies1_names = '\n'.join([name for socket, name in buddies1])
             buddies2_names = '\n'.join([name for socket, name in buddies2])
             start_message = bytes(
-                "Welcome to Keyboard Spamming"
-                " Battle Royale.\nGroup 1:\n==\n" + buddies1_names + "\n\nGroup "
-                                                                     "2:\n==\n" + buddies2_names + "\n"
-                                                                                                   "\nStart pressing keys on "
-                                                                                                   "your keyboard as fast as "
-                                                                                                   "you can!!",
+                "Welcome to Keyboard Spamming Battle Royale.\nGroup"
+                "1:\n==\n" + buddies1_names + "\n\nGroup "
+                                              "2:\n==\n" + buddies2_names + "\n\nStart pressing keys on your keyboard "
+                                                                            "as "
+                                                                            "fast as you can!!",
                 "utf-8")
 
             for client, group_name in sockets_list:
@@ -133,6 +139,7 @@ if __name__ == '__main__':
             # game2_result = game2.result()
             # game3_result = game3.result()
             # game4_result = game4.result()
+
             game = []
             results = []
 
