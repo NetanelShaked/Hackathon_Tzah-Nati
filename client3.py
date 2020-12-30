@@ -1,7 +1,7 @@
 import socket
 import struct
 import getch
-
+import time
 
 if __name__ == '__main__':
     while True:
@@ -26,15 +26,18 @@ if __name__ == '__main__':
         print("Received offer from " + str(addr[0]) + " attempting to connect...")
         portnum = msg_rec[2]
         print("Port num " + str(int(portnum)))
-
-        tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tcp_socket.connect((socket.gethostname(), 5112))
-
-        tcp_socket.sendall(bytes("THE CHANA'S", "utf-8"))
-
-        print(tcp_socket.recv(1024).decode("utf-8"))
+        try:
+            tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_socket.connect((socket.gethostname(), 5112))
+            tcp_socket.settimeout(10)
+            tcp_socket.sendall(bytes("KeysCannon", "utf-8"))
+            print(tcp_socket.recv(1024).decode("utf-8"))
+        except:
+            print("Connection failed, trying again.")
+            continue
         server_message = None
-        while server_message is None:
+        timer=time.time()
+        while server_message is None and time.time()-timer<10.5:
             message = getch.getche()
             try:
                 tcp_socket.sendall(bytes(message, "utf-8"))
