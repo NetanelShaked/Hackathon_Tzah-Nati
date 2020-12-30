@@ -14,7 +14,7 @@ def send_broadcast_suggestion(socket_udp):
     :return:
     """
     message = struct.pack('Ibh', 0xfeedbeef, 0x2, 5112)
-    socket_udp.sendto(message, ("<broadcast>", 13117))
+    socket_udp.sendto(message, ("172.1.255.255", 13117))
 
 
 def thread_send_Announcements(socket_udp):
@@ -79,13 +79,13 @@ if __name__ == '__main__':
             tcp_socket.listen()
             tcp_open = True
         except OSError:
-            print("SOME DID SOMETHING NASTY AND STOLL MY PORT!!")
+            print("SOMEONE DID SOMETHING NASTY AND STOLE MY PORT!!")
             time.sleep(1)
 
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         while True:
-            try:
+            # try:
                 # tcp_socket.settimeout(30)
                 # (clientside, address_1) = tcp_socket.accept()
                 # group_name = clientside.recv(1024).decode("utf-8")
@@ -198,12 +198,11 @@ if __name__ == '__main__':
 
                 result_message += bytes(statics + mvp + best_group,"utf-8")
 
-                print (result_message)
                 for client, group_name in sockets_list:
                     client.sendall(result_message)
                     client.close()
 
                 sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
                 sending_suggestions_thread.start()
-            except:
-                pass
+            # except:
+            #     pass
