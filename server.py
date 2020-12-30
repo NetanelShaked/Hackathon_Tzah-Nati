@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         while True:
-            # try:
+            try:
                 # tcp_socket.settimeout(30)
                 # (clientside, address_1) = tcp_socket.accept()
                 # group_name = clientside.recv(1024).decode("utf-8")
@@ -205,5 +205,5 @@ if __name__ == '__main__':
 
                 sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
                 sending_suggestions_thread.start()
-            # except:
-            #     pass
+            except:
+                pass
