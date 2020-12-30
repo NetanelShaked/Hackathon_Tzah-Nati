@@ -191,7 +191,7 @@ if __name__ == '__main__':
                     0] + " with: "+ str(max(group_score.values()))+ " chars!!!!" + "\033[0m"
                 best_group_name=[group_name for group_name, score in group_score.items() if score == max(group_score.values())]
                 if len(best_group_name)>0:
-                    best_group = "\033[93m"+"\033[01m" + "\nbest group ever is " + best_group_name[0]
+                    best_group = "\033[93m"+"\033[01m" + "\nbest group ever is " + best_group_name[0] + "\033[0m"
                 else:
                     best_group=""
 
