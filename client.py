@@ -38,7 +38,7 @@ if __name__ == '__main__':
                 tcp_socket.settimeout(3)
                 tcp_socket.connect((addr[0], portnum))
                 tcp_socket.settimeout(10)
-                # Sending our group name
+                # Sending our group-name
                 tcp_socket.sendall(bytes("KeysCannon", "utf-8"))
                 tcp_socket.settimeout(10)
                 server_message = tcp_socket.recv(1024)
