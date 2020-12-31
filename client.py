@@ -7,6 +7,7 @@ if __name__ == '__main__':
 
     while True:
         try:
+            # Start looking for breadcast invitation
             print("Client started, listening for offer requests...")
             UDP_PORT = 13117
             cache_anointment = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -14,6 +15,7 @@ if __name__ == '__main__':
             cache_anointment.bind(('', UDP_PORT))
             stop = False
             data = None
+            # this loop define to catch only a broadcast message packing by struct pack, and starting with magicCooky
             while not stop:
                 data, addr = cache_anointment.recvfrom(1024)
                 if data is None:
@@ -33,6 +35,7 @@ if __name__ == '__main__':
                 tcp_socket.settimeout(3)
                 tcp_socket.connect((addr[0], portnum))
                 tcp_socket.settimeout(10)
+                # Sending our group name
                 tcp_socket.sendall(bytes("KeysCannon", "utf-8"))
                 tcp_socket.settimeout(10)
                 server_message=tcp_socket.recv(1024)
@@ -42,6 +45,7 @@ if __name__ == '__main__':
                 continue
             server_message = None
             timer=time.time()
+            # This loop will iterate until server send some message or 10.5 second is done
             while server_message is None and time.time()-timer<10.5:
                 message = getch.getche()
                 try:

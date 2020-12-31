@@ -18,6 +18,12 @@ def send_broadcast_suggestion(socket_udp):
 
 
 def thread_send_Announcements(socket_udp):
+    """
+    This function using by new process for approving terminate in 10 second.
+    Its calling to new thread that send a broadcast invitation for playing in our server
+    :param socket_udp: an udp socket already open - set to broadcast connection
+    :return: None
+    """
     threading.Timer(1.0, thread_send_Announcements, args=[socket_udp]).start()
     send_broadcast_suggestion(socket_udp)
 
@@ -43,6 +49,11 @@ def get_all_tcp_connection(tcpSocket):
 
 
 def start_new_game(clientside):
+    """
+    This function counting how much key's the clients hit in 10 seconds
+    :param clientside: tcp socket, client is already connect to
+    :return: how much char's client hit in 10 seconds
+    """
     start_time = time.time()
     char_counter = 0
     while time.time() - start_time < 10:
@@ -57,8 +68,8 @@ def start_new_game(clientside):
 
 
 if __name__ == '__main__':
-    sockets_list = []
-    SERVER_IP = socket.gethostname()
+    sockets_list = []  # This list will contain tuples of (tcp socket to client, group name belong to this client)
+    # SERVER_IP = socket.gethostname() Used for debugging
     PORT_NUM = 5112
 
     print("Server started,listening on IP address 172.1.0.3")
@@ -66,12 +77,13 @@ if __name__ == '__main__':
     upd_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     upd_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-    sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
-    sending_suggestions_thread.start()
+    sending_suggestions_process = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
+    sending_suggestions_process.start()
 
     tcp_open = False
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    group_score = {}
+    group_score = {}  # this dictionary will contain for each group ever join and play in this server and her best score until now
+
     # Starting our tcp server
     while not tcp_open:
         try:
@@ -82,42 +94,39 @@ if __name__ == '__main__':
             print("SOMEONE DID SOMETHING NASTY AND STOLE MY PORT!!")
             time.sleep(1)
 
-
     with concurrent.futures.ThreadPoolExecutor() as executor:
         while True:
             try:
-
                 print("Waiting for participation")
                 sockets_list = get_all_tcp_connection(tcp_socket)
                 if len(sockets_list) < 2:
-                    if len(sockets_list)==1:
-                        sockets_list[0][0].sendall(bytes("You are alone in this game, server restart and waiting again for connections",
-                                                      "utf-8"))
+                    #In case that game can't start, lonley player or no one is join. starting again looking for clients
+                    if len(sockets_list) == 1:
+                        sockets_list[0][0].sendall(
+                            bytes("You are alone in this game, server restart and waiting again for connections",
+                                  "utf-8"))
                         sockets_list[0][0].close()
                     continue
-                sending_suggestions_thread.terminate()
-
-
+                sending_suggestions_process.terminate()
 
                 random.shuffle(sockets_list)
 
-
+                # each game group get half of the participation by random choice
                 buddies1 = sockets_list[:len(sockets_list) // 2]
                 buddies2 = sockets_list[len(sockets_list) // 2:]
                 buddies1_names = '\n'.join([name for socket, name in buddies1])
                 buddies2_names = '\n'.join([name for socket, name in buddies2])
 
                 start_message = bytes(
-                    "\033[93m"+"\033[01m"+"Welcome to Keyboard Spamming Battle Royale.\n"+"\033[35m"+"\033[01m"+"Group"
-                    "1:\n==\n" + buddies1_names + "\n\n\033[33m"+"\033[01m"+"Group "
-                                                  "2:\n==\n" + buddies2_names + "\n\n\033[93m"+"\033[01m"+"Start pressing keys on your keyboard "
-                                                                                "as "
-                                                                                "fast as you can!!\033[0m",
+                    "\033[93m" + "\033[01m" + "Welcome to Keyboard Spamming Battle Royale.\n" + "\033[35m" + "\033[01m" + "Group"
+                                                                                                                          "1:\n==\n" + buddies1_names + "\n\n\033[33m" + "\033[01m" + "Group "
+                                                                                                                                                                                      "2:\n==\n" + buddies2_names + "\n\n\033[93m" + "\033[01m" + "Start pressing keys on your keyboard "
+                                                                                                                                                                                                                                                  "as "
+                                                                                                                                                                                                                                                  "fast as you can!!\033[0m",
                     "utf-8")
 
                 for client, group_name in sockets_list:
                     client.sendall(start_message)
-
 
                 game = []
                 results = []
@@ -128,6 +137,7 @@ if __name__ == '__main__':
                 for i in range(len(sockets_list)):
                     results.append(game[i].result())
                     group_score[sockets_list[i][1]] = max(group_score.get(sockets_list[i][1], 0), results[i])
+                # Calculate each buddies results
                 buddies1_result = sum(results[:len(sockets_list) // 2])
                 buddies2_result = sum(results[len(sockets_list) // 2:])
                 buddies1_string_for_result_message = ' & '.join([name for socket, name in buddies1])
@@ -136,45 +146,51 @@ if __name__ == '__main__':
                     buddies1_result) + " points\n"
                 result_message_buddies2 = buddies2_string_for_result_message + " get " + str(
                     buddies2_result) + " points\n"
-
+                # building a summary message depend on the results
                 if buddies1_result == buddies2_result:
                     print("TEKO")
-                    result_message = bytes("\033[35m"+"\033[01m"+result_message_buddies1 +  "\n\n\033[33m"+"\033[01m" +
-                                           result_message_buddies2 + "\033[93m"+"\033[01m" + "All Buddies get the same score, it a TEKO!" +
-                                           "\033[0m", "utf-8")
+                    result_message = bytes(
+                        "\033[35m" + "\033[01m" + result_message_buddies1 + "\n\n\033[33m" + "\033[01m" +
+                        result_message_buddies2 + "\033[93m" + "\033[01m" + "All Buddies get the same score, it a TEKO!" +
+                        "\033[0m", "utf-8")
 
                 elif buddies1_result > buddies2_result:
                     print("Buddies 1 is winner")
-                    result_message = bytes("\033[35m"+"\033[01m"+result_message_buddies1 + "\n\n\033[33m"+"\033[01m" +
-                                           result_message_buddies2 + "\033[32m"+"\033[01m" +
-                                           buddies1_string_for_result_message + " win\n" + "\033[12m"+"\033[01m"+ buddies2_string_for_result_message + " loss" + "\033[0m",
-                                           "utf-8")
+                    result_message = bytes(
+                        "\033[35m" + "\033[01m" + result_message_buddies1 + "\n\n\033[33m" + "\033[01m" +
+                        result_message_buddies2 + "\033[32m" + "\033[01m" +
+                        buddies1_string_for_result_message + " win\n" + "\033[12m" + "\033[01m" + buddies2_string_for_result_message + " loss" + "\033[0m",
+                        "utf-8")
 
                 else:
                     print("Buddies 2 is winner")
-                    result_message = bytes("\033[35m"+"\033[01m"+result_message_buddies1 + "\n\n\033[33m"+"\033[01m" +
-                                           result_message_buddies2 + "\033[32m"+"\033[01m" +
-                                           buddies2_string_for_result_message + " win\n" + "\033[31m"+"\033[01m" + buddies1_string_for_result_message + " loss" + "\033[0m",
-                                           "utf-8")
+                    result_message = bytes(
+                        "\033[35m" + "\033[01m" + result_message_buddies1 + "\n\n\033[33m" + "\033[01m" +
+                        result_message_buddies2 + "\033[32m" + "\033[01m" +
+                        buddies2_string_for_result_message + " win\n" + "\033[31m" + "\033[01m" + buddies1_string_for_result_message + " loss" + "\033[0m",
+                        "utf-8")
 
-                statics = "\033[93m"+"\033[01m"+"\nbuddies 1 typed : " + str(buddies1_result / 10) + " per sec\nbuddies 2 typed : " + str(
+                statics = "\033[93m" + "\033[01m" + "\nbuddies 1 typed : " + str(
+                    buddies1_result / 10) + " per sec\nbuddies 2 typed : " + str(
                     buddies2_result / 10) + " per sec" + "\033[0m"
-                mvp = "\033[93m"+"\033[01m" + "\nThe MVP is: " + [sockets_list[i][1] for i in range(len(results)) if results[i] == max(results)][
-                    0] + " with: "+ str(max(group_score.values()))+ " chars!!!!" + "\033[0m"
-                best_group_name=[group_name for group_name, score in group_score.items() if score == max(group_score.values())]
-                if len(best_group_name)>0:
-                    best_group = "\033[93m"+"\033[01m" + "\nbest group ever is " + best_group_name[0] + "\033[0m"
+                mvp = "\033[93m" + "\033[01m" + "\nThe MVP is: " + \
+                      [sockets_list[i][1] for i in range(len(results)) if results[i] == max(results)][
+                          0] + " with: " + str(max(group_score.values())) + " chars!!!!" + "\033[0m"
+                best_group_name = [group_name for group_name, score in group_score.items() if
+                                   score == max(group_score.values())]
+                if len(best_group_name) > 0:
+                    best_group = "\033[93m" + "\033[01m" + "\nbest group ever is " + best_group_name[0] + "\033[0m"
                 else:
-                    best_group=""
+                    best_group = ""
 
-
-                result_message += bytes(statics + mvp + best_group,"utf-8")
+                result_message += bytes(statics + mvp + best_group, "utf-8")
 
                 for client, group_name in sockets_list:
                     client.sendall(result_message)
                     client.close()
-
-                sending_suggestions_thread = multiprocessing.Process(target=thread_send_Announcements, args=(upd_socket,))
-                sending_suggestions_thread.start()
+                # Starting looking for players again
+                sending_suggestions_process = multiprocessing.Process(target=thread_send_Announcements,
+                                                                      args=(upd_socket,))
+                sending_suggestions_process.start()
             except:
                 pass
